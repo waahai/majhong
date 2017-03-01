@@ -1,0 +1,223 @@
+<html>
+<head>maj</head>
+<body>
+</body>
+<script>
+var ALL_CARDS = [
+  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+  0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
+  0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29
+];
+function reachable(pCards, powerCard, exclude) {
+  var cardBase = remove_card(ALL_CARDS, exclude);
+  var lastCards = [];
+  if(!cards_size_check(pCards)) {
+    return lastCards;
+  }
+
+  var powerCardCount = count_power_card(pCards, powerCard);
+  if(powerCardCount > 1) {
+    return lastCards;
+  }
+  if( powerCardCount == 1) {
+    var cardsWithoutPowerCard = remove_card(pCards, [powerCard]);
+    for(var idx in cardBase) {
+      var card = cardBase[idx];
+      if(card != powerCard) {
+        for(var idy in ALL_CARDS) {
+          var simulatedCard = ALL_CARDS[idy];
+          var newCards = add_card(add_card(cardsWithoutPowerCard, card), simulatedCard);
+          // console.log('try lastCard: ' + card + ' with powerCard simulate '+simulatedCard);
+          if(winable(newCards)) {
+            // console.log('=====>found lastCard: ' + card + ' simulate '+simulatedCard);
+            lastCards.push(card);
+            break;
+          }
+        }
+      }
+    }
+  } else {
+    for(var idx in cardBase) {
+        var card = cardBase[idx];
+        var newCards = add_card(pCards, card);
+        // console.log('try lastCard: ' + card);
+        if(winable(newCards)) {
+          // console.log('=====>found lastCard: ' + card);
+          lastCards.push(card);
+        }
+    }
+  }
+  return lastCards;
+}
+
+function winable(pCards) {
+  if(!max_four_checker(pCards)) {
+    return false;
+  }
+  if(is_seven_pair(pCards)) {
+    return true;
+  }
+  var pCardMap = single_card_count(pCards);
+  //先找出其中一对
+  for(var idx in pCardMap) {
+    if(pCardMap[idx] > 1) {
+      var newCards = remove_card(pCards, [idx,idx]);
+      if(aaa_abc_check(newCards)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function add_card(pCards, target) {
+  var newCards = [];
+  var added = false;
+  for(var idx in pCards) {
+    var card = pCards[idx];
+    if(!added && card >= target) {
+      newCards.push(target);
+      added = true;
+    }
+    newCards.push(card);
+  }
+  if(!added) {
+    newCards.push(target);
+  }
+  return newCards;
+}
+
+function remove_card(pCards, targets) {
+  var newCards = [];
+  var targetIndex = 0;
+  for(var idx in pCards) {
+    var card = pCards[idx];
+    if(card == targets[targetIndex]) {
+      targetIndex++;
+    } else {
+      newCards.push(card);
+    }
+  }
+  return newCards;
+}
+
+function has_card(pCards, target) {
+  return (pCards.indexOf(target) != -1);
+}
+
+function aaa_abc_check(pCards) {
+  var len = pCards.length;
+  if(len == 0) {
+    return true;
+  }
+  if(len%3 != 0) {
+    return false;
+  }
+  var pCardMap = single_card_count(pCards);
+  var target = pCards[0];
+  //先试试AAA
+  if(pCardMap[target.toString()] >= 3) {
+    //去掉AAA
+    var newCards = remove_card(pCards, [target,target,target]);
+    //如果剩下的能够成功分组
+    if(aaa_abc_check(newCards)) {
+      return true;
+    }
+  }
+  //然后尝试ABC
+  if(has_card(pCards, target+1) && has_card(pCards, target+2)) {
+    var newCards = remove_card(pCards, [target, target+1, target+2]);
+    return aaa_abc_check(newCards);
+  }
+  //分组失败
+  return false;
+}
+
+function count_power_card(pCards, powerCard) {
+  var powerCardCount = 0;
+  for(var idx in pCards) {
+    if(powerCard == pCards[idx]) {
+      powerCardCount++;
+    }
+  }
+  return powerCardCount;
+}
+
+function cards_size_check(pCards) {
+  if(!Array.isArray(pCards)) {
+    return false;
+  }
+  var len = pCards.length;
+  if( len < 1 || len > 13 ) {
+    return false;
+  }
+  if( len%3 !== 1 ) {
+    return false;
+  }
+  return true;
+}
+
+function single_card_count(pCards) {
+  var tempMap = {};
+  for(var idx in pCards) {
+    var key = pCards[idx].toString();
+    if( tempMap[key] == undefined ) {
+      tempMap[key] = 1;
+    } else {
+      tempMap[key] = tempMap[key] + 1;
+    }
+  }
+  return tempMap;
+}
+
+function max_four_checker(pCards) {
+  var pCardMap = single_card_count(pCards);
+  for(var key in pCardMap) {
+    if(pCardMap[key] > 4) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function is_seven_pair(pCards) {
+  if(pCards.length != 14) {
+    return false;
+  }
+  var pCardMap = single_card_count(pCards);
+  for(var key in pCardMap) {
+    if(pCardMap[key]%2 != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function test1() {
+  var st = (new Date()).valueOf();
+  var testingCards = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x16, 0x17, 0x22, 0x22, 0x28];
+  var lastCards = [];
+  for(var idx in testingCards) {
+    var card = testingCards[idx];
+    var newCards = remove_card(testingCards, [card]);
+    console.log("打"+ card +"后:"+newCards);
+    var result = reachable(newCards, 0x28, lastCards);
+    if(result.length > 0) {
+      for(var idr in result) {
+        lastCards = add_card(lastCards, result[idr])
+      }
+    }
+    console.log("听张:"+lastCards);
+  }
+  console.log("耗时"+((new Date()).valueOf()-st)+"毫秒");
+}
+
+function test2() {
+  var testingCards = [0x02, 0x02, 0x02, 0x03, 0x04, 0x04, 0x04];
+  console.log(reachable(testingCards, 0x03));
+}
+
+test1();
+
+</script>
+</html>
